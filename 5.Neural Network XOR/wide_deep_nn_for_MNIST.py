@@ -11,17 +11,28 @@ nb_classes = 10
 X = tf.placeholder(tf.float32, [None, 784])
 Y = tf.placeholder(tf.float32, [None, nb_classes])
 
-W = tf.Variable(tf.random_normal([784, nb_classes]), name='weight')
-b = tf.Variable(tf.random_normal([nb_classes]), name='bias')
+W1 = tf.Variable(tf.random_normal([784, nb_classes]), name='weight1')
+b1 = tf.Variable(tf.random_normal([nb_classes]), name='bias1')
+layer1 = tf.nn.softmax(tf.matmul(X, W1) + b1)
 
-logits = tf.matmul(X, W) + b
-hypothesis = tf.nn.softmax(logits)
+W2 = tf.Variable(tf.random_normal([nb_classes, nb_classes]), name='weight2')
+b2 = tf.Variable(tf.random_normal([nb_classes]), name='bias2')
+layer2 = tf.nn.softmax(tf.matmul(layer1, W2) + b2)
+
+W3 = tf.Variable(tf.random_normal([nb_classes, nb_classes]), name='weight3')
+b3 = tf.Variable(tf.random_normal([nb_classes]), name='bias3')
+hypothesis = tf.nn.softmax(tf.matmul(layer2, W3) + b3)
 
 cost = tf.reduce_mean(-tf.reduce_sum(Y * tf.log(hypothesis), axis=1))
 optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.1).minimize(cost)
 
 is_correct = tf.equal(tf.argmax(hypothesis, 1), tf.argmax(Y, 1))
 accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
+
+W3_hist = tf.summary.histogram("weight3", W3)
+cost_summ = tf.summary.scalar("cost", cost)
+
+summary = tf.summary.merge_all()
 
 # parameters
 training_epochs = 15
@@ -30,6 +41,10 @@ batch_size = 100
 with tf.Session() as sess:
    # Initialize TensorFlow variables
    sess.run(tf.global_variables_initializer())
+
+   writer = tf.summary.FileWriter('./logs')
+   writer.add_graph(sess.graph)
+
    # Training cycle
    for epoch in range(training_epochs):
        avg_cost = 0
@@ -37,11 +52,13 @@ with tf.Session() as sess:
 
        for i in range(total_batch):
            batch_xs, batch_ys = mnist.train.next_batch(batch_size)
-           c, _ = sess.run([cost, optimizer], feed_dict={X: batch_xs, Y: batch_ys})
+           s, c, _ = sess.run([summary, cost, optimizer], feed_dict={X: batch_xs, Y: batch_ys})
+           writer.add_summary(s, global_step=((epoch * total_batch - 1) + i))
            avg_cost += c / total_batch
 
        print('Epoch:', '%04d' % (epoch + 1), 'cost =', '{:.9f}'.format(avg_cost))
 
+"""
     # Get one and predict
    r = random.randint(0, mnist.test.num_examples - 1)
    print("Label:", sess.run(tf.argmax(mnist.test.labels[r:r+1], 1)))
@@ -50,3 +67,5 @@ with tf.Session() as sess:
                         
    plt.imshow(mnist.test.images[r:r + 1].reshape(28, 28), cmap='Greys', interpolation='nearest')
    plt.show()
+
+"""

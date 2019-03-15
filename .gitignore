@@ -105,4 +105,6 @@ venv.bak/
 
 # Visual Studio Code
 .vscode/
-3.Softmax Regression/MNIST_data/
+
+logs/
+MNIST_data/
